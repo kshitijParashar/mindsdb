@@ -27,13 +27,19 @@ class RayServeHandler(BaseMLEngine):
 
     def create(self, target: str, df: Optional[pd.DataFrame] = None, args: Optional[Dict] = None) -> None:
         # TODO: use join_learn_process to notify users when ray has finished the training process
-        args = args['using']  # ignore the rest of the problem definition
+        args = args['using'] # ignore the rest of the problem definition
         args['target'] = target
         self.model_storage.json_set('args', args)
+        headers = {
+            'Content-Type': 'application/json; format=pandas-records',
+        }
+        if 'headers' in args and 'authorization' in args['headers']:
+            headers['authorization'] = args['headers']['authorization']
+
         try:
             resp = requests.post(args['train_url'],
                                  json={'df': df.to_json(orient='records'), 'target': target},
-                                 headers={'content-type': 'application/json; format=pandas-records'})
+                                 headers=headers)
         except requests.exceptions.InvalidSchema:
             raise Exception("Error: The URL provided for the training endpoint is invalid.")
 
